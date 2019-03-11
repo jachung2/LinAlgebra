@@ -2,6 +2,7 @@ package LinSolver;
 
 /**
  * Matrix class.
+ * @author Jon
  */
 
 import java.util.Arrays;
@@ -41,8 +42,8 @@ public class Matrix {
     }
 
     public Matrix(int[][] data) {
-        M = data.length;
-        N = data[0].length;
+        this.M = data.length;
+        this.N = data[0].length;
         this.data = new RationalBigInteger[M][N];
         for(int i = 0; i < M; i++) {
             for(int j = 0; j < N; j++) {
@@ -52,8 +53,8 @@ public class Matrix {
     }
 
     public Matrix(double[][] data) {
-        M = data.length;
-        N = data[0].length;
+        this.M = data.length;
+        this.N = data[0].length;
         this.data = new RationalBigInteger[M][N];
         for(int i = 0; i < M; i++) {
             for(int j = 0; j < N; j++) {
@@ -63,8 +64,8 @@ public class Matrix {
     }
 
     public Matrix(RationalBigInteger[][] data) {
-        M = data.length;
-        N = data[0].length;
+        this.M = data.length;
+        this.N = data[0].length;
         this.data = new RationalBigInteger[M][N];
         for(int i = 0; i < M; i++) {
             for(int j = 0; j < N; j++) {
@@ -99,7 +100,7 @@ public class Matrix {
      */
     public Matrix getInverse() throws SingularMatrixException {
         RationalBigInteger detM = det(this);
-        if (M != N || detM.equals(ZERO)) {
+        if (detM.equals(ZERO)) {
             throw new SingularMatrixException();
         }
         Matrix adj = Matrix.adj(this);
@@ -264,38 +265,38 @@ public class Matrix {
     /**
      * Obtains QR decomposition of a matrix using Gram-Schmidt process.
      */
-    public void QR() throws IllegalDimensionException {
+    public void QR() throws IllegalDimensionException, SingularMatrixException {
         RationalBigInteger[][] QData = new RationalBigInteger[M][N];
         Sqrt[] lengths = new Sqrt[N];
+
         if(N > M) {
-            System.out.println("Matrix is not invertible");
+            throw new SingularMatrixException();
         }
-        else {
-            RationalBigInteger[] x = new RationalBigInteger[M];
-            for(int i = 0; i < N; i++) {
 
-                Vector vectorX = getVector(this, i);
-                // Projection of x onto itself just gives x
-                Vector projXontoW = Vector.getZeroVector(M);
-                Vector vectorY = vectorX;
+        RationalBigInteger[] x = new RationalBigInteger[M];
+        for(int i = 0; i < N; i++) {
 
-                if (i > 0) {
-                    for(int j = i - 1; j >= 0; j--) {
-                        // Orthogonal basis vector v
-                        Vector vectorV = getVector(QData, j);
-                        // Calculate projection x onto W by adding its projection onto V
-                        projXontoW = projXontoW.add(vectorX.proj(vectorV));
-                    }
-                    // Orthogonal Y
-                    vectorY = vectorX.subtract(projXontoW);
+            Vector vectorX = getVector(this, i);
+            // Projection of x onto itself just gives x
+            Vector projXontoW = Vector.getZeroVector(M);
+            Vector vectorY = vectorX;
+
+            if (i > 0) {
+                for(int j = i - 1; j >= 0; j--) {
+                    // Orthogonal basis vector v
+                    Vector vectorV = getVector(QData, j);
+                    // Calculate projection x onto W by adding its projection onto V
+                    projXontoW = projXontoW.add(vectorX.proj(vectorV));
                 }
-
-                lengths[i] = vectorY.getLength();
-                setVector(QData, i, vectorY);
+                // Orthogonal Y
+                vectorY = vectorX.subtract(projXontoW);
             }
-            Q = new Matrix(QData);
-            R = Q.transpose().multiply(this);
+
+            lengths[i] = vectorY.getLength();
+            setVector(QData, i, vectorY);
         }
+        Q = new Matrix(QData);
+        R = Q.transpose().multiply(this);
     }
 
     /**
@@ -427,7 +428,6 @@ public class Matrix {
     }
 
     /**
-    /**
      * @return the largest value in each column as a 1-D array.
      */
     public int[] largestColumnValues() {
@@ -477,8 +477,7 @@ public class Matrix {
         for (int i = row - 1; i >= 0; i--) {
             if (!data[i][column].equals(ZERO)) {
                 RationalBigInteger val = data[i][column];
-                scaleRow(multiple, i);
-                addMultiple(val, row, i);
+                addMultiple(multiple.multiply(val), row, i);
             }
         }
     }
