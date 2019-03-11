@@ -1,8 +1,3 @@
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
 package LinSolver;
 
 /**
@@ -71,7 +66,7 @@ public class Solver extends Application{
         Button DET = new Button("DET");
         Button ADJ = new Button("ADJ");
         Button INV = new Button("INV");
-        Button NULLM = new Button("NullM");
+        Button NULLM = new Button("NULL");
         Button CLEAR = new Button("CLR");
 
         Image undoIcon = new Image(getClass().getResourceAsStream("action-undo.png"),
@@ -235,9 +230,9 @@ public class Solver extends Application{
             RationalBigInteger DET = Matrix.det(m);
             outputMatrix.setText(DET.toString());
         } else if (e == Action.INV) {
-            if (!Matrix.det(m).toString().equals("0")) {
+            try {
                 outputMatrix.setText(m.getInverse().toString());
-            } else {
+            } catch (Matrix.SingularMatrixException exception) {
                 outputMatrix.setText("Inverse doesn't exist.");
             }
         } else {

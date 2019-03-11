@@ -11,7 +11,7 @@ public class Matrix {
     private static final RationalBigInteger ZERO = new RationalBigInteger("0");
     private static final RationalBigInteger ONE = new RationalBigInteger("1");
 
-    private static boolean displayMessages = false;
+    private static boolean verbose = false;
 
     private final RationalBigInteger[][] data;
     private final int M;
@@ -77,7 +77,10 @@ public class Matrix {
         this(A.data);
     }
 
-    public Matrix getIdentity() {
+    /**
+     * @return m x m identity corresponding to this matrix.
+     */
+    private Matrix getIdentity() {
         Matrix identity = new Matrix(M, M);
         for(int i = 0; i < identity.M; i++) {
             for(int j = 0; j < identity.M; j++) {
@@ -90,40 +93,35 @@ public class Matrix {
         return identity;
     }
 
-    public int getM() {
-        return M;
-    }
-
-    public int getN() {
-        return N;
-    }
-
-    public Matrix getQ() {
-        return Q;
-    }
-
-    public Matrix getR() {
-        return R;
-    }
-
-    public Matrix getInverse() {
-        Matrix adj = Matrix.adj(this);
+    /**
+     * @return the inverse if it exists.
+     * @throws SingularMatrixException
+     */
+    public Matrix getInverse() throws SingularMatrixException {
         RationalBigInteger detM = det(this);
+        if (M != N || detM.equals(ZERO)) {
+            throw new SingularMatrixException();
+        }
+        Matrix adj = Matrix.adj(this);
         return Matrix.scale(adj, new RationalBigInteger("1/" + detM));
     }
 
-    private static Matrix scale(Matrix a, RationalBigInteger c) {
-        Matrix m = new Matrix(a);
+    /**
+     * @param m the matrix to scale.
+     * @param c constant scale.
+     * @return the scaled matrix.
+     */
+    private static Matrix scale(Matrix m, RationalBigInteger c) {
+        Matrix res = new Matrix(m);
         for(int i = 0; i < m.M; i++) {
-            m.scaleRow(c, i);
+            res.scaleRow(c, i);
         }
-        return m;
+        return res;
     }
 
     /**
-     *
-     * @param A the matrix to find the inverse of
-     * @return the [R | E], where R is a row reduced echelon form of A
+     * @param A the matrix to find the inverse of.
+     * @return the [R | E], where R is a row reduced echelon form of A.
      */
     public static Matrix getRE(Matrix A) {
         Matrix I = A.getIdentity();
@@ -155,9 +153,9 @@ public class Matrix {
     private void REF(int end) {
         rank = 0;
         for (int i = 0; i < Math.min(end, M); i++) {
-            print();
+            if (verbose) print();
             sortRows(i, this);
-            print();
+            if (verbose) print();
 
             int pivotColumn = getPivotPosition(i, end);
 
@@ -179,24 +177,28 @@ public class Matrix {
 
     }
 
-    public void RREF(int end) {
+    private void RREF() {
+        RREF(N);
+    }
+
+    private void RREF(int end) {
         REF(end);
         for (int i = M - 1; i >= 0; i--) {
             findNextPivotIndex(i, end);
             if (!data[i][pivotColumnIndex].equals(ZERO)) {
                 zeroOutAbove(i, pivotColumnIndex);
-                if(data[i][pivotColumnIndex].equals(NEG_ONE)) {
+                if (data[i][pivotColumnIndex].equals(NEG_ONE)) {
                     scaleRow(NEG_ONE, i);
                 }
             }
         }
     }
 
-
-    public void RREF() {
-        RREF(N);
-    }
-
+    /**
+     * Sort on rows.
+     * @param startRow begin row to sort.
+     * @param m the matrix to row sort.
+     */
     public static void sortRows(int startRow, Matrix m) {
         for(int i = startRow; i < m.M; i++) {
             for(int j = i + 1; j < m.M; j++) {
@@ -219,24 +221,14 @@ public class Matrix {
         return A;
     }
 
-    public Matrix add(Matrix B) {
-        if(M != B.M || N != B.N) {
-            System.out.println("Illegal Dimensions");
-            System.exit(0);
-        }
-        Matrix C = new Matrix(M, N);
-        for(int i = 0; i < M; i++) {
-            for(int j = 0; j < N; j++) {
-                C.data[i][j] = data[i][j].add(B.data[i][j]);
-            }
-        }
-        return C;
-    }
-
-    public Matrix multiply(Matrix B) {
+    /**
+     * @param B rhs
+     * @return this @ B
+     * @throws IllegalDimensionException
+     */
+    public Matrix multiply(Matrix B) throws IllegalDimensionException {
         if(N != B.M) {
-            System.out.println("Illegal Dimensions");
-            System.exit(0);
+            throw new IllegalDimensionException();
         }
         Matrix C = new Matrix(M, B.N);
         for(int i = 0; i < M; i++) {
@@ -251,7 +243,28 @@ public class Matrix {
         return C;
     }
 
-    public void QR() {
+    /**
+     * @param B rhs
+     * @return this + B
+     * @throws IllegalDimensionException
+     */
+    public Matrix add(Matrix B) throws IllegalDimensionException {
+        if(M != B.M || N != B.N) {
+            throw new IllegalDimensionException();
+        }
+        Matrix C = new Matrix(M, N);
+        for(int i = 0; i < M; i++) {
+            for(int j = 0; j < N; j++) {
+                C.data[i][j] = data[i][j].add(B.data[i][j]);
+            }
+        }
+        return C;
+    }
+
+    /**
+     * Obtains QR decomposition of a matrix using Gram-Schmidt process.
+     */
+    public void QR() throws IllegalDimensionException {
         RationalBigInteger[][] QData = new RationalBigInteger[M][N];
         Sqrt[] lengths = new Sqrt[N];
         if(N > M) {
@@ -285,6 +298,10 @@ public class Matrix {
         }
     }
 
+    /**
+     * @param M the input matrix.
+     * @return the adjugate matrix of M.
+     */
     public static Matrix adj(Matrix M) {
         if(M.M != M.N) {
             System.out.println("Matrix isn't invertible.");
@@ -410,6 +427,7 @@ public class Matrix {
     }
 
     /**
+    /**
      * @return the largest value in each column as a 1-D array.
      */
     public int[] largestColumnValues() {
@@ -499,14 +517,11 @@ public class Matrix {
         return numLeadingZeros;
     }
 
-    public static void displayMessages(boolean b) {
-        displayMessages = b;
-    }
-
-    public RationalBigInteger get(int i, int j) {
-        return data[i][j];
-    }
-
+    /**
+     * @param M rows
+     * @param N cols
+     * @return a random integer matrix of dimensions m x n.
+     */
     public static Matrix random(int M, int N) {
         Matrix A = new Matrix(M, N);
         for (int i = 0; i < M; i++) {
@@ -553,6 +568,12 @@ public class Matrix {
         return new Vector(x);
     }
 
+    /**
+     * Swaps 2 rows in a given matrix.
+     * @param row1 row1
+     * @param row2 row2
+     * @param m the matrix
+     */
     private static void swap(int row1, int row2, Matrix m) {
         RationalBigInteger[] temp = m.data[row1];
         m.data[row1] = m.data[row2];
@@ -562,7 +583,7 @@ public class Matrix {
     /**
      * @param i the begin row index.
      * @param j the begin column index.
-     * @return The bottom right submatrix starting at (i, j).
+     * @return The bottom right sub-matrix starting at (i, j).
      */
     private Matrix subMatrix(int i, int j) {
         Matrix res = new Matrix(M - i, N - j);
@@ -572,6 +593,11 @@ public class Matrix {
         return res;
     }
 
+    /**
+     * @param m rows
+     * @param n cols
+     * @return a zero matrix of dimension m x n
+     */
     public static Matrix zeroMatrix(int m, int n) {
         int[][] data = new int[m][n];
         for (int[] row : data) {
@@ -580,6 +606,11 @@ public class Matrix {
         return new Matrix(data);
     }
 
+    /**
+     * For determining if two matrices are equal.
+     * @param o other Matrix.
+     * @return if two matrices are equal.
+     */
     @Override
     public boolean equals(Object o) {
         if (o instanceof Matrix) {
@@ -597,6 +628,9 @@ public class Matrix {
         return false;
     }
 
+    /**
+     * @return a string representation of this matrix object.
+     */
     @Override
     public String toString() {
         int[] maxValues = largestColumnValues();
@@ -612,7 +646,39 @@ public class Matrix {
         return matString;
     }
 
-    private static class IllegalDimensionException extends  Exception {
-        IllegalDimensionException() { super("Illegal Dimension");}
+    public RationalBigInteger get(int i, int j) {
+        return data[i][j];
+    }
+
+
+    public int getM() {
+        return M;
+    }
+
+    public int getN() {
+        return N;
+    }
+
+    public Matrix getQ() {
+        return Q;
+    }
+
+    public Matrix getR() {
+        return R;
+    }
+
+    /**
+     * Turn on for verbose.
+     * @param b true/false.
+     */
+    public static void verbose(boolean b) {
+        verbose = b;
+    }
+
+    static class IllegalDimensionException extends  Exception {
+        IllegalDimensionException() { super("Illegal Dimensions.");}
+    }
+    static class SingularMatrixException extends  Exception {
+        SingularMatrixException() { super("Matrix is Singular.");}
     }
 }
