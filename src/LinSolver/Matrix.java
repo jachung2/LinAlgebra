@@ -295,14 +295,16 @@ public class Matrix {
             setVector(QData, i, vectorY);
         }
         Q = new Matrix(QData);
-        Q.lengths = lengths;
         R = Q.transpose().multiply(this);
+
+        Q.lengths = lengths;
+        R.lengths = lengths;
     }
 
     public String QRtoString() {
         // Call after QR.
         int[] maxValues = Q.largestColumnValues(true);
-        String matString = "";
+        String matString = "Q:\n";
         for(int i = 0; i < Q.M; i++) {
             for(int j = 0; j < Q.N; j++) {
                 int maxColumnDigits = (j == 0) ? maxValues[j] : maxValues[j] + 2;
@@ -317,6 +319,22 @@ public class Matrix {
                 matString = matString + currentElement;
             }
             matString = (i == Q.M - 1) ? matString : matString + "\n";
+        }
+        matString += "\n\nR:\n";
+        for(int i = 0; i < R.M; i++) {
+            for(int j = 0; j < R.N; j++) {
+                int maxColumnDigits = (j == 0) ? maxValues[j] : maxValues[j] + 2;
+                String currentElement;
+
+                if (R.lengths[i].isONE() || R.data[i][j].equals(RationalBigInteger.ZERO)) {
+                    currentElement = String.format("%" + maxColumnDigits + "s", R.data[i][j]);
+                } else {
+                    currentElement = String.format("%" + maxColumnDigits + "s", R.data[i][j] + "/" + R.lengths[i]);
+                }
+
+                matString = matString + currentElement;
+            }
+            matString = (i == R.M - 1) ? matString : matString + "\n";
         }
         return matString;
     }
@@ -456,15 +474,13 @@ public class Matrix {
         int[] maxValues = new int[N];
         for(int j = 0; j < N; j++) {
             int max = data[0][j].numDigits();
-            int sqrtSize = lengths[j].stringSize() + 1;
+            int sqrtSize = 0;
             if (qr) {
+                sqrtSize = lengths[j].stringSize() + 1;
                 max += sqrtSize;
             }
             for(int i = 0; i < M; i++) {
-                int elementSize = data[i][j].numDigits();
-                if (qr) {
-                    elementSize += sqrtSize;
-                }
+                int elementSize = data[i][j].numDigits() + sqrtSize;
                 if (elementSize > max) {
                     max = elementSize;
                 }

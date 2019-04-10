@@ -204,7 +204,6 @@ public class Solver extends Application{
         } catch (NoInputException ignored){
 
         } catch (Exception ex){
-            ex.printStackTrace();
             displayError();
         }
     }
