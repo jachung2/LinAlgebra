@@ -23,6 +23,7 @@ public class Matrix {
 
     private Matrix Q;
     private Matrix R;
+    private Sqrt[] lengths;
 
     public Matrix() {
         this.M = 0;
@@ -267,13 +268,11 @@ public class Matrix {
      */
     public void QR() throws IllegalDimensionException, SingularMatrixException {
         RationalBigInteger[][] QData = new RationalBigInteger[M][N];
-        Sqrt[] lengths = new Sqrt[N];
 
         if(N > M) {
             throw new SingularMatrixException();
         }
-
-        RationalBigInteger[] x = new RationalBigInteger[M];
+        Sqrt[] lengths = new Sqrt[N];
         for(int i = 0; i < N; i++) {
 
             Vector vectorX = getVector(this, i);
@@ -296,7 +295,30 @@ public class Matrix {
             setVector(QData, i, vectorY);
         }
         Q = new Matrix(QData);
+        Q.lengths = lengths;
         R = Q.transpose().multiply(this);
+    }
+
+    public String QRtoString() {
+        // Call after QR.
+        int[] maxValues = Q.largestColumnValues(true);
+        String matString = "";
+        for(int i = 0; i < Q.M; i++) {
+            for(int j = 0; j < Q.N; j++) {
+                int maxColumnDigits = (j == 0) ? maxValues[j] : maxValues[j] + 2;
+                String currentElement;
+
+                if (Q.lengths[j].isONE() || Q.data[i][j].equals(RationalBigInteger.ZERO)) {
+                    currentElement = String.format("%" + maxColumnDigits + "s", Q.data[i][j]);
+                } else {
+                    currentElement = String.format("%" + maxColumnDigits + "s", Q.data[i][j] + "/" + Q.lengths[j]);
+                }
+
+                matString = matString + currentElement;
+            }
+            matString = (i == Q.M - 1) ? matString : matString + "\n";
+        }
+        return matString;
     }
 
     /**
@@ -387,7 +409,7 @@ public class Matrix {
     }
 
     public void print() {
-        int[] maxValues = largestColumnValues();
+        int[] maxValues = largestColumnValues(false);
         for(int i = 0; i < M; i++) {
             for(int j = 0; j < N; j++) {
                 int maxColumnDigits = maxValues[j] + 2;
@@ -430,13 +452,21 @@ public class Matrix {
     /**
      * @return the largest value in each column as a 1-D array.
      */
-    public int[] largestColumnValues() {
+    public int[] largestColumnValues(boolean qr) {
         int[] maxValues = new int[N];
         for(int j = 0; j < N; j++) {
             int max = data[0][j].numDigits();
+            int sqrtSize = lengths[j].stringSize() + 1;
+            if (qr) {
+                max += sqrtSize;
+            }
             for(int i = 0; i < M; i++) {
-                if (data[i][j].numDigits() > max) {
-                    max = data[i][j].numDigits();
+                int elementSize = data[i][j].numDigits();
+                if (qr) {
+                    elementSize += sqrtSize;
+                }
+                if (elementSize > max) {
+                    max = elementSize;
                 }
             }
             maxValues[j] = max;
@@ -632,7 +662,7 @@ public class Matrix {
      */
     @Override
     public String toString() {
-        int[] maxValues = largestColumnValues();
+        int[] maxValues = largestColumnValues(false);
         String matString = "";
         for(int i = 0; i < M; i++) {
             for(int j = 0; j < N; j++) {

@@ -67,6 +67,7 @@ public class Solver extends Application{
         Button ADJ = new Button("ADJ");
         Button INV = new Button("INV");
         Button NULLM = new Button("NULL");
+        Button QR = new Button("QR");
         Button CLEAR = new Button("CLR");
 
         Image undoIcon = new Image(getClass().getResourceAsStream("action-undo.png"),
@@ -107,6 +108,9 @@ public class Solver extends Application{
         NULLM.setOnAction(e -> {
             process(Action.NULLM);
         });
+        QR.setOnAction(e -> {
+            process(Action.QR);
+        });
         UNDO.setOnAction(e -> {
             UNDO();
         });
@@ -126,7 +130,8 @@ public class Solver extends Application{
         B.add(NULLM, 2, 1);
         B.add(UNDO, 0, 2);
         B.add(REDO, 1, 2);
-        B.add(CLEAR, 2, 2);
+        B.add(QR, 2, 2);
+        B.add(CLEAR, 2, 3);
 
         //Style the fontSize TextField
         fontSize.setPromptText("Size");
@@ -199,6 +204,7 @@ public class Solver extends Application{
         } catch (NoInputException ignored){
 
         } catch (Exception ex){
+            ex.printStackTrace();
             displayError();
         }
     }
@@ -226,7 +232,15 @@ public class Solver extends Application{
         saveHistory();
         C.getChildren().removeAll(label, outputMatrix, errorLabel);
 
-        if (e == Action.DET) {
+        if (e == Action.QR) {
+            try {
+                m.QR();
+                outputMatrix.setText(m.QRtoString());
+            } catch (Matrix.IllegalDimensionException | Matrix.SingularMatrixException exception) {
+                outputMatrix.setText("Matrix is singular");
+            }
+
+        } else if (e == Action.DET) {
             RationalBigInteger DET = Matrix.det(m);
             outputMatrix.setText(DET.toString());
         } else if (e == Action.INV) {
@@ -335,7 +349,8 @@ enum Action {
     DET,
     ADJ,
     INV,
-    NULLM
+    NULLM,
+    QR
 }
 
 class NoInputException extends Exception {
